@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import Modal from './Modal';
+import Waveform from './Waveform';
 import voiceAnimation from '../assets/voice-animation.json';
 import type { ChatMessage, ChatWidgetProps } from '../types';
 
@@ -96,6 +97,10 @@ const generateUUID = () => {
   });
 };
 
+const isIOSDevice = () => {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
+
 const getSessionId = () => {
   let sessionId = localStorage.getItem('chat_session_id');
   if (!sessionId) {
@@ -184,6 +189,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const isAudioUnlockedRef = useRef(false);
   const hasAudioPermissionRef = useRef(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
+
+  // iOS-specific audio recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const silenceDetectionTimerRef = useRef<number | null>(null);
+  const voiceAnalyserRef = useRef<AnalyserNode | null>(null);
+  const silenceCheckIntervalRef = useRef<number | null>(null);
 
   const initDataString = typeof initData === 'string' ? initData : JSON.stringify(initData);
   const resolvedVoiceAnimation = voiceAnimationData || voiceAnimation;
@@ -465,6 +478,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     (payload: any) => {
       if (!payload) return;
 
+      console.log('[Debug] Received server message:', payload);
+
       const audioChunk = payload.audio_chunk || payload.chunk || payload.audio;
       if (payload.type === 'audio_chunk' && audioChunk) {
         enqueueAudioChunk(audioChunk);
@@ -491,6 +506,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         return;
       }
 
+      if (payload.type === 'transcription') {
+        // Handle transcription from backend for iOS
+        const transcribedText = payload.text || '';
+        setCurrentTranscript('');
+        fullTranscriptRef.current = '';
+
+        // Reset for the new response cycle (iOS audio flow bypasses sendChatMessage)
+        responseMessageShownRef.current = false;
+        firstAudioChunkTimeRef.current = null;
+
+        if (transcribedText.trim()) {
+          setMessages((prev) => [...prev, { type: 'user', text: transcribedText }]);
+          setIsLoading(true); // Show loading while backend processes the transcribed text
+        }
+        return;
+      }
+
       if (payload.type === 'audio_end') {
         handleAudioEnd();
         setIsLoading(false);
@@ -498,6 +530,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
 
       if (payload.type === 'display' && payload.html) {
+        console.log('[Debug] Display message received, responseMessageShownRef:', responseMessageShownRef.current);
         if (!responseMessageShownRef.current) {
           responseMessageShownRef.current = true;
 
@@ -506,14 +539,18 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             const remainingDelay = Math.max(0, TEXT_DISPLAY_DELAY - elapsedSinceFirstAudio);
 
             displayMessageTimeoutRef.current = window.setTimeout(() => {
+              console.log('[Debug] Adding agent message to UI (delayed):', payload.html.substring(0, 50));
               setMessages((prev) => [...prev, { type: 'agent', text: payload.html, hasTyped: false }]);
               setIsLoading(false);
               displayMessageTimeoutRef.current = null;
             }, remainingDelay);
           } else {
+            console.log('[Debug] Adding agent message to UI:', payload.html.substring(0, 50));
             setMessages((prev) => [...prev, { type: 'agent', text: payload.html, hasTyped: false }]);
             setIsLoading(false);
           }
+        } else {
+          console.log('[Debug] Message blocked - responseMessageShownRef is true');
         }
         return;
       }
@@ -693,6 +730,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         return;
       }
 
+      // Reset response message flag for new request
+      responseMessageShownRef.current = false;
+      firstAudioChunkTimeRef.current = null;
+      console.log('[Debug] sendChatMessage - Reset flags for new request');
+
       try {
         ws.send(
           JSON.stringify({
@@ -778,10 +820,198 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   useEffect(() => {
     return () => {
       if (recognitionRef.current) recognitionRef.current.abort();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (silenceCheckIntervalRef.current) {
+        clearInterval(silenceCheckIntervalRef.current);
+      }
+      if (silenceDetectionTimerRef.current) {
+        clearTimeout(silenceDetectionTimerRef.current);
+      }
     };
   }, []);
 
-  const startRecognition = useCallback(() => {
+  const startIOSRecording = useCallback(async () => {
+    try {
+      setIsListening(true);
+      audioChunksRef.current = [];
+
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      // Create audio context and analyser for silence detection
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      voiceAnalyserRef.current = analyser;
+
+      // Create MediaRecorder - iOS Safari supports audio/mp4
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : 'audio/mp4';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+
+      const format = mimeType === 'audio/webm' ? 'webm' : 'mp4';
+      
+      // Send stream start signal
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'audio_stream_start',
+          format: format
+        }));
+      }
+
+      // Stream audio chunks as they become available
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+          
+          // Convert chunk to base64 and send immediately
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Chunk = (reader.result as string).split(',')[1];
+            
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({
+                type: 'audio_chunk',
+                chunk: base64Chunk
+              }));
+            }
+          };
+          reader.readAsDataURL(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        setIsListening(false);
+        setIsLoading(true); // Show loading while audio is being transcribed
+
+        // Reset response flag so the upcoming display message is not blocked
+        responseMessageShownRef.current = false;
+        firstAudioChunkTimeRef.current = null;
+        
+        // Send stream end signal
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'audio_stream_end',
+            format: format,
+            isAudioConversation: true
+          }));
+        }
+
+        // Clean up
+        audioChunksRef.current = [];
+        voiceAnalyserRef.current = null;
+        
+        if (silenceCheckIntervalRef.current) {
+          clearInterval(silenceCheckIntervalRef.current);
+          silenceCheckIntervalRef.current = null;
+        }
+        
+        if (silenceDetectionTimerRef.current) {
+          clearTimeout(silenceDetectionTimerRef.current);
+          silenceDetectionTimerRef.current = null;
+        }
+        
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop());
+          mediaStreamRef.current = null;
+        }
+        
+        audioContext.close();
+      };
+
+      mediaRecorder.onerror = (event: any) => {
+        console.error('[iOS Audio] MediaRecorder error:', event.error);
+        setIsListening(false);
+      };
+
+      // Silence detection
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const SILENCE_THRESHOLD = 10; // Adjust based on testing
+      let lastVoiceTime = Date.now();
+
+      const checkSilence = () => {
+        analyser.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+        
+        if (average > SILENCE_THRESHOLD) {
+          // Voice detected, reset timer
+          lastVoiceTime = Date.now();
+          
+          if (silenceDetectionTimerRef.current) {
+            clearTimeout(silenceDetectionTimerRef.current);
+            silenceDetectionTimerRef.current = null;
+          }
+        } else {
+          // Check if silent for 2 seconds
+          const silenceDuration = Date.now() - lastVoiceTime;
+          
+          if (silenceDuration >= 2000 && !silenceDetectionTimerRef.current) {
+            // Auto-stop recording after 2 seconds of silence
+            silenceDetectionTimerRef.current = window.setTimeout(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                console.log('[iOS Audio] Auto-stopping due to silence');
+                mediaRecorderRef.current.stop();
+              }
+            }, 100);
+          }
+        }
+      };
+
+      // Check silence every 100ms
+      silenceCheckIntervalRef.current = window.setInterval(checkSilence, 100);
+
+      // Start recording with 200ms timeslice for streaming
+      mediaRecorder.start(200);
+
+      // Maximum recording time of 30 seconds
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          console.log('[iOS Audio] Auto-stopping due to max duration');
+          mediaRecorderRef.current.stop();
+        }
+      }, 30000);
+
+    } catch (err: any) {
+      console.error('[iOS Audio] Failed to start recording:', err);
+      if (err.name === 'NotAllowedError') {
+        alert('Please allow microphone access in your browser settings.');
+      }
+      setIsListening(false);
+    }
+  }, []);
+
+  const stopIOSRecording = useCallback(() => {
+    if (silenceCheckIntervalRef.current) {
+      clearInterval(silenceCheckIntervalRef.current);
+      silenceCheckIntervalRef.current = null;
+    }
+    
+    if (silenceDetectionTimerRef.current) {
+      clearTimeout(silenceDetectionTimerRef.current);
+      silenceDetectionTimerRef.current = null;
+    }
+    
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  const startRecognition = useCallback(async () => {
     if (isListening) return;
 
     const SpeechRecognition =
@@ -789,6 +1019,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (!SpeechRecognition) return;
 
     if (recognitionRef.current) recognitionRef.current.abort();
+
+    // Set up audio analyser for waveform visualization
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      voiceAnalyserRef.current = analyser;
+    } catch (err) {
+      console.warn('[Audio] Could not set up analyser for waveform:', err);
+    }
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
@@ -826,6 +1072,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
     recognition.onend = () => {
       setIsListening(false);
+      voiceAnalyserRef.current = null;
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
       if (fullTranscriptRef.current.trim() && !stoppedForAudioRef.current) {
         handleVoiceMessageInternal(fullTranscriptRef.current);
       }
@@ -851,19 +1102,28 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
     hasAudioPermissionRef.current = true;
     setTimeout(() => {
-      startRecognition();
+      if (isIOSDevice()) {
+        startIOSRecording();
+      } else {
+        startRecognition();
+      }
     }, 300);
-  }, [connectWebSocket, startRecognition, initAudioContext]);
+  }, [connectWebSocket, startRecognition, initAudioContext, startIOSRecording]);
 
   const handleMicClick = () => {
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isIOS) {
-      setIsIOSModalOpen(true);
-      return;
-    }
     if (isListening) {
       manualStopRef.current = true;
-      recognitionRef.current?.stop();
+      if (isIOSDevice()) {
+        stopIOSRecording();
+      } else {
+        recognitionRef.current?.stop();
+        // Clean up media stream immediately
+        voiceAnalyserRef.current = null;
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop());
+          mediaStreamRef.current = null;
+        }
+      }
       setIsListening(false);
       return;
     }
@@ -902,12 +1162,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     const handleOpenChatVoice = () => {
       setIsOpen(true);
 
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isIOS) {
-        setIsIOSModalOpen(true);
-        return;
-      }
-
       if (!isListening) {
         setTimeout(() => {
           if (!hasAudioPermissionRef.current) {
@@ -926,7 +1180,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   return (
     <div className={className} style={style}>
       <Modal isOpen={isIOSModalOpen} onClose={() => setIsIOSModalOpen(false)} title="iOS Audio Support">
-        Voice conversation is currently not supported on iOS devices due to browser restrictions. Please use an Android device or a Desktop computer for the best experience.
+        Voice conversation works on iOS! Tap the microphone to start speaking. Your voice will be processed through our backend for the best experience.
       </Modal>
 
       <Modal
@@ -977,9 +1231,30 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-8 inset-x-0 z-[70] flex justify-center pointer-events-none print:hidden"
           >
-            <div className="bg-slate-900/80 backdrop-blur-md rounded-full px-6 py-2 shadow-2xl border border-white/10 flex items-center justify-center min-w-[140px] h-[50px]">
+            <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl px-6 py-3 shadow-2xl border border-white/10 flex flex-col items-center justify-center min-w-[300px]">
               {isListening ? (
-                <span className="text-white font-medium animate-pulse">Listening...</span>
+                <>
+                  <span className="text-white text-xs font-medium mb-2">Listening...</span>
+                  {voiceAnalyserRef.current ? (
+                    <Waveform analyser={voiceAnalyserRef.current} isActive={isListening} />
+                  ) : (
+                    <div className="w-full h-20 flex items-center justify-center">
+                      <div className="flex gap-1 items-end h-12">
+                        {[...Array(20)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-gradient-to-t from-purple-400 to-indigo-400 rounded-full animate-pulse"
+                            style={{
+                              height: `${20 + Math.random() * 60}%`,
+                              animationDelay: `${i * 0.05}s`,
+                              animationDuration: '0.8s'
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <Lottie animationData={resolvedVoiceAnimation} loop={true} style={{ width: 100, height: 50 }} />
               )}
@@ -1100,7 +1375,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10"
+                  className="absolute top-0 left-0 right-0 bottom-16 bg-slate-900/80 backdrop-blur-sm z-10 pointer-events-none"
                 />
               )}
 
