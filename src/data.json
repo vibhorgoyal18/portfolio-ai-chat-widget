@@ -1,0 +1,502 @@
+{
+  "chatConfig": {
+    "dataUrl": "https://raw.githubusercontent.com/vibhorgoyal18/vibhor-goyal-portfolio/refs/heads/master/src/data.json?token=GHSAT0AAAAAADSJODZD6B6HUHKC4OK5FDOE2LDOFQA",
+    "elevenlabsVoiceId": "k9gnUwI5v1CTZB4E2JoK",
+    "openaiVoiceId": "echo"
+  },
+  "home": {
+    "name": "Vibhor Goyal",
+    "headline": "Building Self-Healing Systems & Voice Agents that Replace Manual Work.",
+    "role": "Automation & AI Agent Expert | PGD in AI & ML (IIIT Bangalore)",
+    "aboutMe": "Automation & AI Agent Expert with 10+ years of experience and a PGD in AI and ML from IIIT Bangalore. Specializing in building self-healing automation frameworks and intelligent AI agents using LangChain, Gemini, and Playwright. Expert in bridging the gap between traditional automation and modern AI capabilities.",
+    "stats": [
+      {
+        "value": "10+ Years",
+        "label": "Lead Strategy",
+        "icon": "leaderboard"
+      },
+      {
+        "value": "300+",
+        "label": "Hours Reclaimed",
+        "icon": "schedule"
+      },
+      {
+        "value": "80%",
+        "label": "Cost Reduction",
+        "icon": "savings"
+      }
+    ]
+  },
+  "experience": [
+    {
+      "id": 1,
+      "role": "Lead SDET & AI Automation Architect",
+      "company": "BlackRock (via VLink India)",
+      "location": "Noida, India (Remote)",
+      "period": "12/2023 - Present",
+      "description": [
+        "Architected a centralized intelligence dashboard using React and FastAPI, aggregating telemetry from 100+ CI/CD pipelines, reducing executive reporting latency by 90%.",
+        "Managed Azure DevOps CI/CD pipelines to standardize quality gates and release telemetry for cross-team visibility.",
+        "Engineered a 'Self-Healing' test infrastructure using Local LLMs (Qwen/Llama via Ollama) and Playwright-MCP to autonomously fix UI failures.",
+        "Led 'AI for Engineering' initiatives, training cross-functional teams on GitHub Copilot workflows and prompt engineering to boost developer velocity.",
+        "Developed framework for GRPC automation testing in Java and Rest API testing in Robot framework."
+      ],
+      "skills": [
+        "AI Automation",
+        "Java",
+        "Python",
+        "Robot Framework",
+        "Azure DevOps",
+        "GitHub Copilot",
+        "Playwright",
+        "Local LLMs",
+        "React",
+        "FastAPI"
+      ]
+    },
+    {
+      "id": 2,
+      "role": "Lead Software Quality Engineer",
+      "company": "Adobe",
+      "location": "Noida, Uttar Pradesh",
+      "period": "01/2022 - 12/2023",
+      "description": [
+        "Contributed directly to backend stability by identifying and fixing core application bugs in Java Spring Boot, moving beyond black-box testing.",
+        "Developed a custom internal utility in JavaScript to handle the flakiness of tests in Playwright.",
+        "Managed GitHub Actions pipelines for reliable CI/CD execution and release readiness.",
+        "Optimized release cycles for a team of 5, streamlining the transition to Jira-integrated execution.",
+        "Implemented detailed reporting to improve failure visibility and reduce debugging time",
+        "Led framework migration from Node v12 to Node v18 for better compatibility and performance"
+      ],
+      "skills": ["Java", "Spring Boot", "JavaScript", "Jira", "GitHub Actions", "Test Management"]
+    },
+    {
+      "id": 3,
+      "role": "Software Design Engineer In Test",
+      "company": "FarEye",
+      "location": "Noida, Uttar Pradesh",
+      "period": "11/2020 - 01/2022",
+      "description": [
+        "Led automation planning and execution for a team of 2.",
+        "Developed robust backend automation frameworks using Java and RestAssured for high-throughput logistics APIs.",
+        "Maintained Jenkins CI/CD pipelines to stabilize nightly regression and deployment workflows.",
+        "Architected the migration from Practitest to Xray, slashing infrastructure costs from $1,800 to $300 per month (83% reduction) while improving traceability.",
+        "Developed a utility for the internal team using Django and Angular, saving around 300 hours per month."
+      ],
+      "skills": ["Java", "RestAssured", "API Testing", "Jenkins", "Django", "Angular"]
+    },
+    {
+      "id": 4,
+      "role": "Software Design Engineer in Test",
+      "company": "Mydesq AG",
+      "location": "Noida, India",
+      "period": "08/2018 - 11/2019",
+      "description": [
+        "Solely architected and built an internal HRMS web application using Django and Angular, demonstrating full-stack capability.",
+        "Automated CI/CD build and deployment pipelines using Python and Jenkins.",
+        "Part of the development team, working on application development using Electron.js and Angular."
+      ],
+      "skills": [
+        "Python",
+        "Django",
+        "Angular",
+        "Jenkins",
+        "CI/CD",
+        "Electron.js"
+      ]
+    },
+    {
+      "id": 5,
+      "role": "Software Design Engineer Test",
+      "company": "Pyramid Consulting, Inc",
+      "location": "Noida, India",
+      "period": "03/2018 - 08/2018",
+      "description": [
+        "Maintained Java/Selenium framework and implemented ExtentReports."
+      ],
+      "skills": ["Java", "Selenium", "ExtentReports"]
+    },
+    {
+      "id": 6,
+      "role": "Associate Quality Analyst",
+      "company": "XorLabs, LLC",
+      "location": "Greater Noida, India",
+      "period": "01/2017 - 03/2018",
+      "description": [
+        "Automated in-house tasks with Python and created a Selenium/Java framework."
+      ],
+      "skills": ["Python", "Selenium", "Java"]
+    }
+  ],
+  "skills": [
+    {
+      "category": "AI & Agents",
+      "items": [
+        "LangChain",
+        "Gemini",
+        "Playwright MCP",
+        "OpenAI",
+        "Voice AI",
+        "WhatsApp Agents",
+        "Web Based Agents",
+        "Local LLMs"
+      ]
+    },
+    {
+      "category": "Automation",
+      "items": [
+        "Selenium",
+        "Robot Framework",
+        "Playwright",
+        "RestAssured",
+        "Cucumber",
+        "GitHub Copilot"
+      ]
+    },
+    {
+      "category": "Languages",
+      "items": [
+        { "name": "Java", "level": 80 },
+        { "name": "Python", "level": 70 },
+        { "name": "JavaScript", "level": 70 },
+        { "name": "TypeScript", "level": 50 }
+      ]
+    },
+    {
+      "category": "Tools",
+      "items": [
+        "Azure DevOps",
+        "GitHub Actions",
+        "Jenkins",
+        "Postman",
+        "GitHub",
+        "Jira",
+        "ExtentReports"
+      ]
+    },
+    {
+      "category": "Cloud & Dev",
+      "items": [
+        "AWS",
+        "Azure",
+        "Spring Boot",
+        "React",
+        "PostgreSQL",
+        "FastAPI",
+        "Django",
+        "Angular",
+        "Electron.js"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "IIIT Bangalore",
+      "degree": "PGD in AI & ML",
+      "period": "2020-2021",
+      "details": "Specialized in Artificial Intelligence and Machine Learning"
+    }
+  ],
+  "projects": [
+    {
+      "id": 12,
+      "title": "End-to-End Voice Agent Testing",
+      "description": "Developed a framework to test voice agents by simulating real voice interactions. Uses Gemini to generate responses, converts them to speech (TTS), and injects audio via Playwright/Python.",
+      "technologies": ["Gemini TTS", "Playwright", "Python", "Voice AI"],
+      "category": ["Automation", "AI Agent"],
+      "featured": true,
+      "image": "https://images.unsplash.com/photo-1589254065878-42c9da997008?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "I designed a test harness that mimics a real human user. First, an LLM (Gemini) generates context-aware conversational text. This text is converted to audio using a Text-to-Speech (TTS) engine. Using Playwright, I inject this audio stream directly into the browser's microphone input, tricking the Voice Agent into thinking a human is speaking. The agent's audio response is then captured, transcribed back to text, and asserted against the expected logic flow."
+    },
+    {
+      "id": 14,
+      "title": "Centralized Intelligence Dashboard",
+      "description": "Architected a centralized intelligence dashboard using React and FastAPI, aggregating telemetry from 100+ CI/CD pipelines, reducing executive reporting latency by 90%.",
+      "technologies": ["React", "FastAPI", "CI/CD", "Telemetry"],
+      "category": ["Automation", "Web App"],
+      "featured": true,
+      "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This dashboard provides real-time insights into CI/CD pipeline performance. It aggregates telemetry data from over 100 pipelines using FastAPI as the backend, which processes and stores metrics in a SQL Server database. The React frontend visualizes this data with interactive charts and alerts, enabling executives to monitor deployment health and identify bottlenecks instantly, reducing reporting latency by 90%."
+    },
+    {
+      "id": 13,
+      "title": "Interactive AI Portfolio (Digital Twin)",
+      "description": "A professional portfolio featuring a conversational 'Digital Twin' agent. Users can interact via voice or text to learn about my experience, skills, and projects. Powered by a context-aware RAG system and real-time WebSockets for low-latency communication.",
+      "technologies": [
+        "React",
+        "LangChain",
+        "Gemini",
+        "ElevenLabs",
+        "WebSockets"
+      ],
+      "category": ["AI Agent", "Voice AI", "Frontend", "Digital Twin"],
+      "link": "#",
+      "github": "#",
+      "featured": true,
+      "image": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This is the core of my 'Agentic Portfolio'. It combines a React frontend with a LangChain/Python backend. When you speak, the browser captures audio and sends it via WebSockets to the backend. It uses OpenAI's Whisper for transcription, then queries a Vector Database (RAG) containing my resume and experience data. The LLM generates a grounded response, which is converted to speech by ElevenLabs and streamed back to the frontend in real-time, creating a seamless conversational loop."
+    },
+    {
+      "id": 1,
+      "title": "Self-Healing Automation Framework",
+      "description": "A self-healing automation framework using Playwright MCP to automatically rerun failed test cases and fix locator issues in real-time.",
+      "technologies": ["Playwright MCP", "Python", "AI"],
+      "category": "Automation",
+      "featured": true,
+      "image": "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This framework eliminates flaky tests by using an Agentic repair loop. When a Playwright selector fails (e.g., 'Element not found'), the framework pauses execution and captures the current DOM snapshot. This snapshot is sent to a Local LLM via the Model Context Protocol (MCP). The LLM analyzes the HTML, identifies the shifted element, and generates a new, robust selector (e.g., changing from a dynamic ID to a stable data-testid). The framework applies the fix hot, retries the action, and logs the patch for permanent code updates."
+    },
+    {
+      "id": 3,
+      "title": "Form Update Chat Agent",
+      "description": "AI chat agent allowing users to update form fields using natural English and Hindi communication, eliminating direct form editing.",
+      "technologies": ["NLP", "AI Agent", "Multi-lingual"],
+      "category": "AI Agent",
+      "image": "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "Instead of forcing users to navigate complex UI forms, this agent allows natural language updates. The system uses an NLP layer to perform Named Entity Recognition (NER) on user input (e.g., 'Change my shipping city to Noida'). It extracts the intent ('Update') and the key-value pair ('City': 'Noida'). A backend mapping layer translates this into the specific API payload required to update the database state, confirming the change back to the user in seconds."
+    },
+    {
+      "id": 4,
+      "title": "WhatsApp Appointment Agent",
+      "description": "WhatsApp AI agent that answers user queries and books Google Meet appointments based on real-time calendar availability.",
+      "technologies": ["WhatsApp API", "Google Meet", "AI"],
+      "category": "AI Agent",
+      "image": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This agent acts as a 24/7 receptionist. It hooks into the WhatsApp Business API to receive user queries. For appointment requests, it authenticates with the Google Calendar API to fetch real-time free/busy slots. It presents available times to the user in a conversational format. Once a slot is selected, it creates a calendar event with a Google Meet link and sends the confirmation details back to the user on WhatsApp."
+    },
+    {
+      "id": 5,
+      "title": "Stock Analysis & Trading Agent",
+      "description": "Real-time stock analysis and buy/sell agent that connects to Groww via tools to perform automated trading operations.",
+      "technologies": ["Groww API", "Financial AI", "Python"],
+      "category": "AI Agent",
+      "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This agent automates technical trading strategies. It polls the Groww API at 1-second intervals to fetch live price data. This data is fed into a Python-based analysis engine that calculates real-time indicators like RSI and MACD. When a 'Buy' signal condition is met (e.g., RSI < 30), the agent triggers a browser automation script (Playwright) to execute the buy order on the platform, bypassing the lack of a public trading API."
+    },
+    {
+      "id": 6,
+      "title": "Automated Video Generation Architecture",
+      "description": "Developed an architecture to create video files in After Effects via automation. Users select a template, fill a form, and the video is generated and delivered to WhatsApp via automated scripts in seconds.",
+      "technologies": ["After Effects", "WhatsApp API", "Automation Scripts"],
+      "category": "Automation",
+      "image": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "I built a pipeline to automate high-volume video personalization. A user submits data (names, text) via a web form. A Python script parses this data and directly modifies the XML structure of an Adobe After Effects project file (.aep). The script then triggers the 'aerender' command-line interface to render the video in the background. Once rendered, the file is uploaded to cloud storage, and a download link is instantly pushed to the user via WhatsApp."
+    },
+    {
+      "id": 7,
+      "title": "Python Robot Framework for API Automation",
+      "description": "Improved and maintained Python Robot Framework for API automation at BlackRock.",
+      "technologies": ["Python", "Robot Framework", "API"],
+      "category": "Automation",
+      "image": "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "I architected a keyword-driven framework to handle complex fintech API workflows. It abstracts the request/response logic into reusable keywords (e.g., 'Authenticate User', 'Verify Transaction Balance'). The framework handles OAuth2.0 token management and payload encryption automatically, allowing testers to write high-level business scenarios without worrying about the underlying cryptographic complexity."
+    },
+    {
+      "id": 8,
+      "title": "Java/Cucumber GRPC & REST API Framework",
+      "description": "Built Java/Cucumber framework for GRPC and REST API automation.",
+      "technologies": ["Java", "Cucumber", "GRPC", "REST"],
+      "category": "Automation",
+      "image": "https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This framework serves as a unified testing layer for microservices. It wraps 'RestAssured' for REST endpoints and 'grpc-java' for gRPC calls. I implemented a 'Protocol Switch' pattern where the same Cucumber scenario can be run against either protocol by changing a configuration flag. This ensures functional parity between legacy REST APIs and modern gRPC services, with consolidated reporting via ExtentReports."
+    },
+    {
+      "id": 9,
+      "title": "Django/Angular Utility",
+      "description": "Developed a Django/Angular utility to save 300 hours/month by automating manual tasks.",
+      "technologies": ["Django", "Angular"],
+      "category": "Web App",
+      "image": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This tool replaced manual SQL execution. I built an Angular frontend that allows Operations teams to upload CSV files defining bulk updates. The Django backend processes these files using Celery workers to handle large datasets asynchronously. This ensures data integrity by validating rows before commitment and provides an audit log of all changes, reducing manual hours by 300+ per month."
+    },
+    {
+      "id": 10,
+      "title": "S3 & SharePoint File Management Utility",
+      "description": "Implemented utility to manage files on S3 and SharePoint via API at Adobe.",
+      "technologies": ["AWS S3", "SharePoint API", "Python"],
+      "category": "Automation",
+      "image": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "This utility automates the document archival process. A Python script monitors specific AWS S3 buckets for new file arrivals using Boto3. Upon detection, it authenticates with the Microsoft Graph API (SharePoint) and uploads the file to the correct Document Library with appropriate metadata tags. It then verifies the upload hash and moves the source file to a 'Processed' folder, ensuring zero data loss."
+    },
+    {
+      "id": 11,
+      "title": "HRMS Web App",
+      "description": "Built an in-house HRMS web app in Django/Angular and contributed to development in Angular.",
+      "technologies": ["Django", "Angular"],
+      "category": "Web App",
+      "image": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=2000",
+      "howItWorks": "A comprehensive HRMS built from scratch. I used Django ORM to model complex employee relationships (hierarchies, leave balances). The Angular frontend consumes these via REST APIs to provide a self-service portal. I implemented Role-Based Access Control (RBAC) to ensure employees can only view their own data while HR admins have global visibility, securing sensitive PII."
+    }
+  ],
+  "contact": {
+    "email": "goyal1809.vibhor@gmail.com",
+    "linkedin": "https://linkedin.com/in/vibhor-goyal-vg",
+    "github": "https://github.com/vibhorgoyal18",
+    "portfolio": "https://portfolio.vibhor-goyal.com/",
+    "phone": "8171383588",
+    "location": "Noida, India"
+  },
+  "summary": {
+    "profileOverview": "I am a Senior Automation & AI Expert currently consulting for global fintech leaders like BlackRock while leading GenAI research at Vlink. To contact me directly, use 8171383588 or goyal1809.vibhor@gmail.com—however, I recommend describing your project here first so I can provide relevant context before we connect.",
+
+    "professionalIdentity": "I bridge the gap between Enterprise Quality Engineering and the frontier of Generative AI. This portfolio is my personal technical sandbox, used to showcase the R&D and GenAI POCs I conduct for Vlink and my consulting engagements at BlackRock.",
+
+    "automationPhilosophy": "I believe in 'Intelligent Stability.' My goal is to move beyond fragile scripts toward self-healing ecosystems where AI agents manage test maintenance, allowing teams to focus on core product innovation.",
+
+    "manualTestingExpertise": "Strong automation is built on a foundation of rigorous manual exploratory testing. I specialize in defining the overarching Test Strategy—identifying what to automate for speed and what to validate manually for human-centric quality.",
+
+    "aiAndAgentWork": "Specializing in 'Agentic Workflows' and currently conducting multiple Generative AI POCs for Vlink India. This includes RAG-based chatbots, ultra-low latency voice agents, and using LLMs to bridge the gap between human language and system execution.",
+
+    "projectsAndSystemsBuilt": "I have successfully deployed: 1. Self-healing frameworks. 2. Real-time Voice AI Agents. 3. WhatsApp Appointment Agents. 4. Automated Video Generation architectures. 5. High-security Fintech API frameworks.",
+
+    "backendAndApiExpertise": "I am a specialist in Service-Level Architecture, designing robust automation for REST and GRPC services that prioritize data integrity and system reliability over UI-heavy testing.",
+
+    "ciCdAndReleaseEnablement": "I integrate smart quality gates into GitLab and GitHub CI/CD pipelines, transforming QA from a release 'blocker' into a continuous deployment 'accelerator.'",
+
+    "costAndEfficiencyOptimization": "Proven track record of ROI: At Adobe, I migrated legacy systems to save 80% in monthly tool costs and reclaimed 300+ engineering hours per month through custom automation utilities.",
+
+    "crossFunctionalEngineering": "As a full-stack quality lead, I contribute directly to backend development (Spring Boot, Django) and performance engineering, ensuring products are 'Testable by Design.'",
+
+    "cloudAndEnterpriseSystems": "Experienced in deploying secure, scalable solutions within AWS and Azure, specifically focusing on secure API management and enterprise-grade AI model integration.",
+
+    "leadershipAndMentorship": "I lead by example, mentoring teams on AI-assisted development (GitHub Copilot) and modern framework architecture to raise the overall technical maturity of the organization.",
+
+    "problemSolvingMindset": "I excel at translating vague business requirements into high-performance technical roadmaps, particularly where AI can eliminate manual touchpoints and operational friction.",
+
+    "professionalValues": "I specialize in the 'Assembler' model—building production-ready AI solutions rapidly using world-class APIs. If you are interested in a similar solution, mention 'Agent Request' in your inquiry to me.",
+
+    "commonTopicsPeopleAskAbout": [
+      "Building Custom AI Voice & Chat Agents",
+      "Consulting for fintech leaders like BlackRock",
+      "Vlink's internal GenAI POCs and R&D",
+      "Implementing Self-Healing Automation in Playwright",
+      "The 'Assembler' model for rapid AI prototyping"
+    ],
+    "faqs": [
+      {
+        "question": "How do you monitor 100+ CI/CD pipelines at once?",
+        "answer": "I don't. My 'QA RADAR' does. I architected a centralized dashboard (React + FastAPI) that aggregates telemetry from every pipeline in real-time. It turns a flood of logs into a simple 'Go/No-Go' signal for executives."
+      },
+      {
+        "question": "Does your 'Self-Healing' framework actually fix code?",
+        "answer": "Yes. When a UI test fails, my Local LLM agent analyzes the DOM snapshot, identifies the shifted element, and patches the locator strategy on the fly. It turns a 'Fail' into a 'Pass' without me waking up."
+      },
+      {
+        "question": "Why use Local LLMs (Ollama) instead of GPT-4?",
+        "answer": "Data privacy and cost. In FinTech (BlackRock), I can't send sensitive logs to OpenAI. Running Qwen or Llama locally ensures zero data leakage and zero token costs, no matter how many tests we run."
+      },
+      {
+        "question": "How on earth do you automate Voice Agent testing?",
+        "answer": "It's tricky. I built a pipeline that injects synthesized audio (TTS) into the browser's microphone input to 'speak' to the agent, then captures and transcribes the response to verify the logic. It's end-to-end testing for ears."
+      },
+      {
+        "question": "What is the 'Assembler' model you follow?",
+        "answer": "I don't reinvent the wheel. I assemble the best parts. I combine top-tier APIs (ElevenLabs, Twilio) with custom glue code to build enterprise-grade AI agents in days, not months."
+      },
+      {
+        "question": "What specifically are you doing at BlackRock?",
+        "answer": "I'm the bridge between traditional Quality Engineering and AI. I'm building the internal tooling (like the QA RADAR and GenAI POCs) that allows the engineering teams to move faster with confidence."
+      },
+      {
+        "question": "Are you open to relocation?",
+        "answer": "Delhi NCR is my base (Family first!). For anywhere else, I am strictly Remote. I deliver value via high-quality code and architecture, not by sitting in a cubicle in a different time zone."
+      },
+      {
+        "question": "How do you handle 'Flaky' tests in your frameworks?",
+        "answer": "I treat flakiness as a bug, not a nuisance. My frameworks use auto-retries with 'Self-Healing' logic to attempt to fix the locator before failing. If it's still flaky, it gets quarantined by the QA RADAR."
+      },
+      {
+        "question": "Why did you choose Playwright for the Voice Agent project?",
+        "answer": "Playwright handles the browser automation part perfectly. The Python logic generates the voice audio and injects it into the browser's microphone input, allowing the voice agent to 'hear' the simulated speech."
+      },
+      {
+        "question": "What is your 'Digital Twin'?",
+        "answer": "The AI you're talking to right now (conceptually). It's a RAG-based agent I built that knows my resume, projects, and tone of voice, allowing you to 'interview' me 24/7."
+      },
+      {
+        "question": "Can you handle backend development?",
+        "answer": "Absolutely. I've fixed core Java Spring Boot bugs at Adobe and built Python backend services at VLink. I believe you can't test the backend effectively if you can't build it."
+      },
+      {
+        "question": "What's your strategy for 'AI for Engineering'?",
+        "answer": "Don't force it. I train teams on GitHub Copilot by showing them how it removes the tedious parts of coding (boilerplate, unit tests), so they actually *want* to adopt it."
+      },
+      {
+        "question": "Why did you move from 'Testing' to 'AI Architecture'?",
+        "answer": "Because testing is just one form of quality. Building autonomous agents that *ensure* quality by design is the natural evolution. I want to prevent bugs, not just catch them."
+      },
+      {
+        "question": "How do you ensure your Trading Agent doesn't lose money?",
+        "answer": "Strict guardrails. It runs on a 1-second poll interval using the Groww API, but I programmed hard stops and risk limits. It executes technical strategies, not gambling."
+      },
+      {
+        "question": "Can you work on [Tech/Stack] not listed here?",
+        "answer": "It's the era of LLMs—I can work on *anything*. If it has documentation, I can build with it. My only condition? Don't assign me boring tasks. Give me a complex problem, and I'll handle the syntax."
+      },
+      {
+        "question": "What is your consulting availability?",
+        "answer": "I take on select, high-impact projects where I can act as the Architect. If you need someone to design a 'Self-Healing' system or a custom Voice Agent, let's talk."
+      },
+      {
+        "question": "Are you available for freelance projects?",
+        "answer": "Though I am a full-time employee at VLink India (Client: BlackRock), I can find spare time in my off-hours if you need help. If the project is interesting, I'll make the time."
+      },
+      {
+        "question": "How do you validate data in your 'QA RADAR'?",
+        "answer": "Trust, but verify. The dashboard pulls raw telemetry, but I have a secondary layer of Python scripts that cross-reference the logs with the actual build artifacts to ensure the data is real."
+      },
+      {
+        "question": "What is your biggest 'Lazy Engineer' innovation?",
+        "answer": "The QA RADAR. I refused to manually open 100+ CI/CD pipelines every morning just to report status. So I built a 'God Mode' dashboard that aggregates them all. Now, a 4-hour reporting task takes 4 seconds."
+      },
+      {
+        "question": "Do you prefer Java or Python?",
+        "answer": "I use Java for the heavy lifting (Enterprise/Spring Boot) and Python for the speed (AI/Scripting). In my current role, I use both daily."
+      },
+      {
+        "question": "How did you automate video generation?",
+        "answer": "I built a Python polling engine that monitors the server every second. When data arrives, it triggers ExtendScript to drive After Effects—opening the template, injecting the changes, rendering the video, and uploading it back. Zero manual editing."
+      },
+      {
+        "question": "What is the 'Form Update' agent?",
+        "answer": "It's an NLP agent I built to kill UI forms. Instead of navigating dropdowns, users just say 'Change city to Noida', and the agent parses the intent and updates the database directly."
+      },
+      {
+        "question": "How do you approach Legacy Code migration?",
+        "answer": "Strangler Fig pattern. When I moved us to Xray, I didn't shut down Practitest overnight. We migrated project by project, validating data integrity at every step."
+      },
+      {
+        "question": "What's the most complex API framework you've built?",
+        "answer": "The GRPC automation at BlackRock. The challenge wasn't just the protocol—it was the silence. With minimal documentation available, I had to reverse-engineer the application code and read the developers' unit tests just to figure out the contracts. I turned a 'black box' into a transparent automation suite."
+      },
+      {
+        "question": "Why do you focus on 'Robot Work' vs 'Human Work'?",
+        "answer": "Because burning out good engineers on data entry is a crime. I build agents to handle the repetitive stuff so my team can focus on creative architecture and edge cases."
+      },
+      {
+        "question": "How do you handle security in your personal projects?",
+        "answer": "I treat my portfolio like a bank. Rate limits on the API, sanitized inputs for the AI agent to prevent injection attacks, and no hardcoded keys. Ever."
+      },
+      {
+        "question": "What is your ideal team culture?",
+        "answer": "One where 'It works on my machine' is not an acceptable excuse. I value full-stack ownership—if you build it, you should know how to deploy and monitor it."
+      },
+      {
+        "question": "How does this 'Digital Twin' work?",
+        "answer": "No over-engineered vector DBs here. I use React (Frontend) and FastAPI (Backend) to feed my structured profile JSON directly into ChatGPT via LangChain. The voice? That's an ElevenLabs clone trained on my real vocals—so yes, that is actually me speaking."
+      },
+      {
+        "question": "What is next for your 'Self-Healing' research?",
+        "answer": "Multi-modal agents. I want the agent to not just read the DOM, but 'see' the screen using vision models to detect visual regressions that code can't catch."
+      },
+      {
+        "question": "How do you maintain a 10+ year career in tech?",
+        "answer": "By never getting comfortable. I went from Manual Testing -> Automation -> Backend Dev -> AI Engineering. Adapt or become legacy code."
+      },
+      {
+        "question": "Why should a company hire you as a Lead?",
+        "answer": "Because I don't just manage tickets; I modernize infrastructure. I bring the 'Startup Speed' of AI to the 'Enterprise Scale' of quality assurance."
+      }
+    ]
+  }
+}

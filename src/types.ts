@@ -9,7 +9,7 @@ export interface ChatMessage {
 }
 
 export interface ChatWidgetProps {
-  websocketUrl: string;
+  websocketUrl?: string;
   initData: Record<string, unknown> | string;
   elevenlabsVoiceId?: string;
   openaiVoiceId?: string;

@@ -105,6 +105,28 @@ const getSessionId = () => {
   return sessionId;
 };
 
+const DEFAULT_WS_URL = 'ws://localhost:5001/ws';
+
+const normalizeWebsocketUrl = (rawUrl?: string) => {
+  const baseUrl = rawUrl || DEFAULT_WS_URL;
+
+  try {
+    const url = new URL(baseUrl);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      if (!url.pathname || url.pathname === '/') {
+        url.pathname = '/ws';
+      }
+    }
+    return url.toString();
+  } catch (err) {
+    if (baseUrl.startsWith('ws://') || baseUrl.startsWith('wss://')) {
+      return baseUrl;
+    }
+    return DEFAULT_WS_URL;
+  }
+};
+
 const ChatWidget: React.FC<ChatWidgetProps> = ({
   websocketUrl,
   initData,
@@ -115,6 +137,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   className,
   style
 }) => {
+  const resolvedWebsocketUrl = normalizeWebsocketUrl(websocketUrl);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -519,20 +542,20 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       const activeSessionId = targetSessionId || getSessionId();
 
       try {
-        const url = new URL(websocketUrl);
+        const url = new URL(resolvedWebsocketUrl);
         url.searchParams.set('session_id', activeSessionId);
         if (elevenlabsVoiceId) url.searchParams.set('elevenlabs_voice_id', elevenlabsVoiceId);
         if (openaiVoiceId) url.searchParams.set('openai_voice_id', openaiVoiceId);
         return url.toString();
       } catch (err) {
-        const separator = websocketUrl.includes('?') ? '&' : '?';
+        const separator = resolvedWebsocketUrl.includes('?') ? '&' : '?';
         const params = new URLSearchParams({ session_id: activeSessionId });
         if (elevenlabsVoiceId) params.set('elevenlabs_voice_id', elevenlabsVoiceId);
         if (openaiVoiceId) params.set('openai_voice_id', openaiVoiceId);
-        return `${websocketUrl}${separator}${params.toString()}`;
+        return `${resolvedWebsocketUrl}${separator}${params.toString()}`;
       }
     },
-    [websocketUrl, elevenlabsVoiceId, openaiVoiceId]
+    [resolvedWebsocketUrl, elevenlabsVoiceId, openaiVoiceId]
   );
 
   const connectWebSocket = useCallback(
