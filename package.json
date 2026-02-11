@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.build.json && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build",
+    "release:patch": "npm version patch && npm publish --access public && git push --follow-tags",
+    "release:minor": "npm version minor && npm publish --access public && git push --follow-tags",
+    "release:major": "npm version major && npm publish --access public && git push --follow-tags"
   },
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
