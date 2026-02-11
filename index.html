@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script>
+      tailwind = {
+        config: {
+          theme: {
+            extend: {
+              colors: {
+                primary: '#137fec',
+                'background-light': '#f6f7f8',
+                'background-dark': '#101922',
+                'surface-dark': '#1C252E',
+                'surface-border': '#2A3441',
+                'card-dark': '#1c242e',
+                'card-light': '#ffffff'
+              },
+              fontFamily: {
+                display: ['Manrope', 'sans-serif'],
+                body: ['Noto Sans', 'sans-serif']
+              }
+            }
+          },
+          darkMode: 'class'
+        }
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>portfolio-ai-chat-widget</title>
+  </head>
+  <body class="dark bg-background-dark text-white font-display">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
