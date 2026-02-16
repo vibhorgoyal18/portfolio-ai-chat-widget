@@ -28,13 +28,12 @@
     "LICENSE"
   ],
   "peerDependencies": {
+    "framer-motion": "^10.16.4 || ^11.0.0",
+    "lottie-react": "^2.4.1",
     "react": "^18.2.0 || ^19.0.0",
     "react-dom": "^18.2.0 || ^19.0.0"
   },
-  "dependencies": {
-    "framer-motion": "^10.16.4",
-    "lottie-react": "^2.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
