@@ -12,11 +12,21 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: [
+        'react', 
+        'react-dom',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'react-dom/client',
+        'framer-motion',
+        'lottie-react'
+      ],
       output: {
         globals: {
           react: 'React',
-          'react-dom': 'ReactDOM'
+          'react-dom': 'ReactDOM',
+          'framer-motion': 'FramerMotion',
+          'lottie-react': 'LottieReact'
         }
       }
     },
