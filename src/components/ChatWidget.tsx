@@ -1223,46 +1223,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {(isListening || isAudioPlaying) && isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 inset-x-0 z-[70] flex justify-center pointer-events-none print:hidden"
-          >
-            <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl px-6 py-3 shadow-2xl border border-white/10 flex flex-col items-center justify-center min-w-[300px]">
-              {isListening ? (
-                <>
-                  <span className="text-white text-xs font-medium mb-2">Listening...</span>
-                  {voiceAnalyserRef.current ? (
-                    <Waveform analyser={voiceAnalyserRef.current} isActive={isListening} />
-                  ) : (
-                    <div className="w-full h-20 flex items-center justify-center">
-                      <div className="flex gap-1 items-end h-12">
-                        {[...Array(20)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-1 bg-gradient-to-t from-purple-400 to-indigo-400 rounded-full animate-pulse"
-                            style={{
-                              height: `${20 + Math.random() * 60}%`,
-                              animationDelay: `${i * 0.05}s`,
-                              animationDuration: '0.8s'
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Lottie animationData={resolvedVoiceAnimation} loop={true} style={{ width: 100, height: 50 }} />
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="fixed bottom-[4.5rem] right-6 z-50 flex flex-col items-end print:hidden">
         <AnimatePresence>
           {isOpen && (
@@ -1454,15 +1414,45 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                     <span className="material-symbols-outlined">mic</span>
                   </button>
 
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => {
-                      setInputValue(e.target.value);
-                    }}
-                    placeholder="Ask me anything..."
-                    className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-base md:text-sm"
-                  />
+                  {isListening || isAudioPlaying ? (
+                    <div className="flex-1 h-10 flex items-center justify-center overflow-hidden">
+                      {isListening ? (
+                        voiceAnalyserRef.current ? (
+                          <Waveform analyser={voiceAnalyserRef.current} isActive={isListening} />
+                        ) : (
+                          <div className="w-full h-8 flex items-center justify-center">
+                            <div className="flex gap-1 items-end h-6">
+                              {[...Array(16)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="w-1 bg-gradient-to-t from-purple-400 to-indigo-400 rounded-full animate-pulse"
+                                  style={{
+                                    height: `${20 + Math.random() * 60}%`,
+                                    animationDelay: `${i * 0.05}s`,
+                                    animationDuration: '0.8s'
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <div className="w-full h-8 flex items-center justify-center">
+                          <Lottie animationData={resolvedVoiceAnimation} loop={true} style={{ width: 90, height: 32 }} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => {
+                        setInputValue(e.target.value);
+                      }}
+                      placeholder="Ask me anything..."
+                      className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-base md:text-sm"
+                    />
+                  )}
                   <button
                     type="submit"
                     disabled={
