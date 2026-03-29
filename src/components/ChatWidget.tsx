@@ -134,9 +134,7 @@ const normalizeWebsocketUrl = (rawUrl?: string) => {
 
 const ChatWidget: React.FC<ChatWidgetProps> = ({
   websocketUrl,
-  initData,
-  elevenlabsVoiceId,
-  openaiVoiceId,
+  email,
   sessionId: sessionIdProp,
   voiceAnimationData,
   className,
@@ -198,7 +196,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const voiceAnalyserRef = useRef<AnalyserNode | null>(null);
   const silenceCheckIntervalRef = useRef<number | null>(null);
 
-  const initDataString = typeof initData === 'string' ? initData : JSON.stringify(initData);
   const resolvedVoiceAnimation = voiceAnimationData || voiceAnimation;
 
   useEffect(() => {
@@ -447,6 +444,66 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     }
   }, [playNextBatch]);
 
+  const handleBinaryPCMAudio = useCallback(async (data: Blob | ArrayBuffer) => {
+    initAudioContext();
+    const ctx = audioContextRef.current!;
+    const arrayBuffer = data instanceof Blob ? await data.arrayBuffer() : data;
+    const pcm16 = new Int16Array(arrayBuffer);
+    if (pcm16.length === 0) return;
+
+    const float32 = new Float32Array(pcm16.length);
+    for (let i = 0; i < pcm16.length; i++) {
+      float32[i] = pcm16[i] / 32768;
+    }
+
+    const audioBuffer = ctx.createBuffer(1, float32.length, 24000);
+    audioBuffer.copyToChannel(float32, 0);
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    if (analyserRef.current) {
+      source.connect(analyserRef.current);
+      analyserRef.current.connect(ctx.destination);
+    } else {
+      source.connect(ctx.destination);
+    }
+
+    activeSourcesRef.current.push(source);
+    const playTime = Math.max(nextPlayTimeRef.current, ctx.currentTime);
+    source.start(playTime);
+    nextPlayTimeRef.current = playTime + audioBuffer.duration;
+    isPlayingRef.current = true;
+    setIsAudioPlaying(true);
+
+    const isMicActive = recognitionRef.current !== null && recognitionRef.current !== undefined;
+    if (isMicActive && !shouldAutoRestartMicRef.current) {
+      shouldAutoRestartMicRef.current = true;
+      stoppedForAudioRef.current = true;
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
+    source.onended = () => {
+      const idx = activeSourcesRef.current.indexOf(source);
+      if (idx > -1) activeSourcesRef.current.splice(idx, 1);
+
+      if (activeSourcesRef.current.length === 0) {
+        isPlayingRef.current = false;
+        setIsAudioPlaying(false);
+
+        if (shouldAutoRestartMicRef.current) {
+          shouldAutoRestartMicRef.current = false;
+          stoppedForAudioRef.current = false;
+          setTimeout(() => {
+            if (!manualStopRef.current) {
+              startRecognition();
+            }
+          }, 300);
+        }
+      }
+    };
+  }, [initAudioContext]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sendInterrupt = useCallback(() => {
     stopAudioPlayback();
     const ws = wsRef.current;
@@ -493,9 +550,16 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
 
       if (payload.type === 'error') {
+        const ERROR_MESSAGES: Record<string, string> = {
+          AUTH_FAILED: 'Authentication failed. Please refresh and try again.',
+          CREDITS_EXHAUSTED: 'You have run out of credits. Please upgrade to continue.',
+          SESSION_NOT_FOUND: 'Session expired. Please refresh the page.',
+          RATE_LIMITED: 'Too many requests. Please slow down and try again.',
+        };
+        const message = (payload.code && ERROR_MESSAGES[payload.code]) || payload.message || 'Sorry, something went wrong.';
         setMessages((prev) => [
           ...prev,
-          { type: 'agent', text: payload.message || 'Sorry, something went wrong.', hasTyped: false }
+          { type: 'agent', text: message, hasTyped: false }
         ]);
         setIsLoading(false);
         return;
@@ -520,6 +584,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           setMessages((prev) => [...prev, { type: 'user', text: transcribedText }]);
           setIsLoading(true); // Show loading while backend processes the transcribed text
         }
+        return;
+      }
+
+      if (payload.type === 'credits_update') {
+        // Credits deducted; no UI change needed
+        return;
+      }
+
+      if (payload.type === 'credits_exhausted') {
+        setMessages((prev) => [
+          ...prev,
+          { type: 'agent', text: 'You have run out of credits. Please upgrade to continue.', hasTyped: false }
+        ]);
+        setIsAgentReady(false);
+        setIsLoading(false);
         return;
       }
 
@@ -581,18 +660,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       try {
         const url = new URL(resolvedWebsocketUrl);
         url.searchParams.set('session_id', activeSessionId);
-        if (elevenlabsVoiceId) url.searchParams.set('elevenlabs_voice_id', elevenlabsVoiceId);
-        if (openaiVoiceId) url.searchParams.set('openai_voice_id', openaiVoiceId);
         return url.toString();
       } catch (err) {
         const separator = resolvedWebsocketUrl.includes('?') ? '&' : '?';
         const params = new URLSearchParams({ session_id: activeSessionId });
-        if (elevenlabsVoiceId) params.set('elevenlabs_voice_id', elevenlabsVoiceId);
-        if (openaiVoiceId) params.set('openai_voice_id', openaiVoiceId);
         return `${resolvedWebsocketUrl}${separator}${params.toString()}`;
       }
     },
-    [resolvedWebsocketUrl, elevenlabsVoiceId, openaiVoiceId]
+    [resolvedWebsocketUrl]
   );
 
   const connectWebSocket = useCallback(
@@ -631,7 +706,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             ws.send(
               JSON.stringify({
                 type: 'init_data',
-                content: initDataString
+                email,
               })
             );
           } catch (e) {
@@ -648,10 +723,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         };
 
         ws.onmessage = (event) => {
+          if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
+            handleBinaryPCMAudio(event.data);
+            return;
+          }
+
           try {
             const parsed = JSON.parse(event.data);
 
-            if (parsed.type === 'init_success') {
+            if (parsed.type === 'init_success' || parsed.type === 'session_ready') {
               setIsAgentReady(true);
               return;
             }
@@ -692,7 +772,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           setIsLoading(false);
           wsRef.current = null;
 
-          if (event.code === 1008 || event.code === 1003) {
+          if (event.code === 1008 || event.code === 1003 || event.code === 4003 || event.code === 4005 || event.code === 4006) {
             if (reconnectRef.current) {
               clearTimeout(reconnectRef.current);
               reconnectRef.current = null;
@@ -713,7 +793,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         reconnectRef.current = window.setTimeout(connectWebSocket, 2000);
       }
     },
-    [buildWebSocketUrl, handleServerMessage, sessionId, initDataString]
+    [buildWebSocketUrl, handleServerMessage, handleBinaryPCMAudio, sessionId, email]
   );
 
   const sendChatMessage = useCallback(

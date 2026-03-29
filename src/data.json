@@ -1,8 +1,7 @@
 {
   "chatConfig": {
     "dataUrl": "https://raw.githubusercontent.com/vibhorgoyal18/vibhor-goyal-portfolio/refs/heads/master/src/data.json?token=GHSAT0AAAAAADSJODZD6B6HUHKC4OK5FDOE2LDOFQA",
-    "elevenlabsVoiceId": "k9gnUwI5v1CTZB4E2JoK",
-    "openaiVoiceId": "echo"
+    "email": ""
   },
   "home": {
     "name": "Vibhor Goyal",
