@@ -1070,6 +1070,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       console.error('[iOS Audio] Failed to start recording:', err);
       if (err.name === 'NotAllowedError') {
         alert('Please allow microphone access in your browser settings.');
+      } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Microphone is not available. Please open this page over HTTPS to use voice features.');
       }
       setIsListening(false);
     }

@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { ChatWidget } from './index';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.aivedalabs.com';
-const wsUrl = `${backendUrl}/agent/ws`;
+const wsUrl = backendUrl
+  ? `${backendUrl}/agent/ws`
+  : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/agent/ws`;
 
 const App: React.FC = () => {
   const userEmail = import.meta.env.VITE_AGENT_EMAIL || '';
