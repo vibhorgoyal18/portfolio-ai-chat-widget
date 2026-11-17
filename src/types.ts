@@ -15,4 +15,5 @@ export interface ChatWidgetProps {
   voiceAnimationData?: unknown;
   className?: string;
   style?: CSSProperties;
+  onOpenChange?: (isOpen: boolean) => void;
 }

@@ -101,6 +101,13 @@ const isIOSDevice = () => {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 };
 
+// Echo cancellation keeps the agent's own playback out of the captured mic signal.
+const MIC_CONSTRAINTS: MediaTrackConstraints = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true
+};
+
 const getSessionId = () => {
   let sessionId = localStorage.getItem('chat_session_id');
   if (!sessionId) {
@@ -138,7 +145,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   sessionId: sessionIdProp,
   voiceAnimationData,
   className,
-  style
+  style,
+  onOpenChange
 }) => {
   const resolvedWebsocketUrl = normalizeWebsocketUrl(websocketUrl);
   const [isOpen, setIsOpen] = useState(false);
@@ -170,8 +178,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const scheduleTimeoutRef = useRef<number | null>(null);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const manualStopRef = useRef(false);
-  const shouldAutoRestartMicRef = useRef(false);
-  const stoppedForAudioRef = useRef(false);
   const responseMessageShownRef = useRef(false);
   const firstAudioChunkTimeRef = useRef<number | null>(null);
   const displayMessageTimeoutRef = useRef<number | null>(null);
@@ -179,6 +185,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const IDEAL_BATCH = 8;
   const PLAYBACK_TIMEOUT = 500;
   const TEXT_DISPLAY_DELAY = 500;
+
+  // Mic gating: the mic must never be open while the agent's own voice is playing,
+  // otherwise speech recognition transcribes the agent and sends it back as user input.
+  const sessionReadyRef = useRef(false); // backend agent initialised for this connection
+  const greetingPendingRef = useRef(false); // Gemini speaks a greeting on connect; keep mic off until it finishes
+  const greetingTimerRef = useRef<number | null>(null);
+  const agentSpeakingRef = useRef(false); // from first audio chunk of a turn until playback has fully drained
+  const turnDoneRef = useRef(true); // server has finished sending the current turn
+  const ignoreAudioRef = useRef(false); // drop the rest of a turn the user barged in on
+  const wantsMicRef = useRef(false); // voice conversation active: open the mic whenever the agent is idle
+  const micResumeTimerRef = useRef<number | null>(null);
+  const recognitionActiveRef = useRef(false);
+  const discardIOSRecordingRef = useRef(false);
+  const startMicRef = useRef<() => void>(() => {});
+  const GREETING_TIMEOUT = 8000; // open the mic anyway if no greeting audio arrives
+  const ECHO_TAIL_MS = 600; // let speaker output and room echo die out before listening
+  const TURN_STALL_TIMEOUT = 4000; // playback drained but turn never marked done
 
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<number | null>(null);
@@ -203,6 +226,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       setSessionId(sessionIdProp);
     }
   }, [sessionIdProp]);
+
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
 
   useEffect(() => {
     const hasSeenFTE = localStorage.getItem('hasSeenFTE');
@@ -242,6 +269,76 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     }
   }, []);
 
+  const clearMicResumeTimer = () => {
+    if (micResumeTimerRef.current) {
+      clearTimeout(micResumeTimerRef.current);
+      micResumeTimerRef.current = null;
+    }
+  };
+
+  const clearGreetingTimer = () => {
+    if (greetingTimerRef.current) {
+      clearTimeout(greetingTimerRef.current);
+      greetingTimerRef.current = null;
+    }
+  };
+
+  const isPlaybackIdle = () =>
+    activeSourcesRef.current.length === 0 &&
+    !isProcessingBatchRef.current &&
+    audioQueueRef.current.length - lastPlayedIndexRef.current - 1 <= 0;
+
+  // Close the mic right away and throw away whatever it captured.
+  const pauseMicForAgent = useCallback(() => {
+    if (recognitionActiveRef.current && recognitionRef.current) {
+      recognitionRef.current.discarded = true;
+      recognitionRef.current.abort();
+      setIsListening(false);
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      discardIOSRecordingRef.current = true;
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  // Called for every chunk of agent audio, before it is played.
+  const onAgentAudio = useCallback(() => {
+    clearMicResumeTimer();
+    clearGreetingTimer();
+    agentSpeakingRef.current = true;
+    turnDoneRef.current = false;
+    pauseMicForAgent();
+  }, [pauseMicForAgent]);
+
+  // Reopen the mic once the agent has finished its turn and the echo has died down.
+  const maybeResumeMic = useCallback(() => {
+    if (!isPlaybackIdle()) return;
+    clearMicResumeTimer();
+
+    const finish = (delay: number) => {
+      micResumeTimerRef.current = window.setTimeout(() => {
+        micResumeTimerRef.current = null;
+        if (!isPlaybackIdle()) return;
+        agentSpeakingRef.current = false;
+        greetingPendingRef.current = false;
+        if (wantsMicRef.current && !manualStopRef.current) {
+          startMicRef.current();
+        }
+      }, delay);
+    };
+
+    if (!turnDoneRef.current) {
+      // Drained mid-turn (network gap between chunks): wait for more audio, but not forever.
+      micResumeTimerRef.current = window.setTimeout(() => {
+        turnDoneRef.current = true;
+        finish(ECHO_TAIL_MS);
+      }, TURN_STALL_TIMEOUT);
+      return;
+    }
+
+    finish(agentSpeakingRef.current ? ECHO_TAIL_MS : 0);
+  }, []);
+
   const stopAudioPlayback = useCallback(() => {
     if (scheduleTimeoutRef.current) {
       clearTimeout(scheduleTimeoutRef.current);
@@ -269,8 +366,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     lastPlayedIndexRef.current = -1;
     playbackScheduledRef.current = false;
     isProcessingBatchRef.current = false;
-    shouldAutoRestartMicRef.current = false;
-    stoppedForAudioRef.current = false;
+    agentSpeakingRef.current = false;
+    turnDoneRef.current = true;
+    clearMicResumeTimer();
     responseMessageShownRef.current = false;
     firstAudioChunkTimeRef.current = null;
     if (audioContextRef.current) {
@@ -358,16 +456,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         } else {
           isPlayingRef.current = false;
           setIsAudioPlaying(false);
-
-          if (shouldAutoRestartMicRef.current) {
-            shouldAutoRestartMicRef.current = false;
-            stoppedForAudioRef.current = false;
-            setTimeout(() => {
-              if (!isListening && !manualStopRef.current) {
-                startRecognition();
-              }
-            }, 300);
-          }
+          maybeResumeMic();
         }
       };
     } catch (err) {
@@ -377,7 +466,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     } finally {
       isProcessingBatchRef.current = false;
     }
-  }, [initAudioContext]);
+  }, [initAudioContext, maybeResumeMic]);
 
   const scheduleNextBatch = useCallback(() => {
     if (scheduleTimeoutRef.current) {
@@ -408,21 +497,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const enqueueAudioChunk = useCallback(
     (chunk: string) => {
-      if (!chunk) return;
+      if (!chunk || ignoreAudioRef.current) return;
 
       const isFirstChunk = audioQueueRef.current.length === 0 || !isPlayingRef.current;
-      const isMicActive = recognitionRef.current !== null && recognitionRef.current !== undefined;
 
       if (isFirstChunk) {
         firstAudioChunkTimeRef.current = Date.now();
-
-        if (isMicActive && !shouldAutoRestartMicRef.current) {
-          shouldAutoRestartMicRef.current = true;
-          stoppedForAudioRef.current = true;
-          recognitionRef.current.stop();
-          setIsListening(false);
-        }
       }
+      onAgentAudio();
 
       audioQueueRef.current.push(chunk);
 
@@ -434,17 +516,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         scheduleNextBatch();
       }
     },
-    [playNextBatch, scheduleNextBatch]
+    [playNextBatch, scheduleNextBatch, onAgentAudio]
   );
 
   const handleAudioEnd = useCallback(() => {
     streamEndedRef.current = true;
+    turnDoneRef.current = true;
+    ignoreAudioRef.current = false;
     if (!playbackScheduledRef.current) {
       playNextBatch();
     }
-  }, [playNextBatch]);
+    maybeResumeMic();
+  }, [playNextBatch, maybeResumeMic]);
 
   const handleBinaryPCMAudio = useCallback(async (data: Blob | ArrayBuffer) => {
+    if (ignoreAudioRef.current) return;
+    onAgentAudio();
     initAudioContext();
     const ctx = audioContextRef.current!;
     const arrayBuffer = data instanceof Blob ? await data.arrayBuffer() : data;
@@ -475,14 +562,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     isPlayingRef.current = true;
     setIsAudioPlaying(true);
 
-    const isMicActive = recognitionRef.current !== null && recognitionRef.current !== undefined;
-    if (isMicActive && !shouldAutoRestartMicRef.current) {
-      shouldAutoRestartMicRef.current = true;
-      stoppedForAudioRef.current = true;
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-
     source.onended = () => {
       const idx = activeSourcesRef.current.indexOf(source);
       if (idx > -1) activeSourcesRef.current.splice(idx, 1);
@@ -490,19 +569,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       if (activeSourcesRef.current.length === 0) {
         isPlayingRef.current = false;
         setIsAudioPlaying(false);
-
-        if (shouldAutoRestartMicRef.current) {
-          shouldAutoRestartMicRef.current = false;
-          stoppedForAudioRef.current = false;
-          setTimeout(() => {
-            if (!manualStopRef.current) {
-              startRecognition();
-            }
-          }, 300);
-        }
+        maybeResumeMic();
       }
     };
-  }, [initAudioContext]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initAudioContext, onAgentAudio, maybeResumeMic]);
 
   const sendInterrupt = useCallback(() => {
     stopAudioPlayback();
@@ -543,9 +613,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         return;
       }
 
-      if (payload.type === 'interrupt_ack') {
+      if (payload.type === 'interrupt_ack' || payload.type === 'interrupted') {
         stopAudioPlayback();
+        ignoreAudioRef.current = false;
         setIsLoading(false);
+        return;
+      }
+
+      if (payload.type === 'response_cancelled') {
+        turnDoneRef.current = true;
+        ignoreAudioRef.current = false;
+        maybeResumeMic();
         return;
       }
 
@@ -566,6 +644,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
 
       if (payload.type === 'done' || payload.done) {
+        turnDoneRef.current = true;
+        ignoreAudioRef.current = false;
+        maybeResumeMic();
         setIsLoading(false);
         return;
       }
@@ -650,7 +731,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         setIsLoading(false);
       }
     },
-    [enqueueAudioChunk, stopAudioPlayback, handleAudioEnd]
+    [enqueueAudioChunk, stopAudioPlayback, handleAudioEnd, maybeResumeMic]
   );
 
   const buildWebSocketUrl = useCallback(
@@ -733,6 +814,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
             if (parsed.type === 'init_success' || parsed.type === 'session_ready') {
               setIsAgentReady(true);
+              if (!sessionReadyRef.current) {
+                sessionReadyRef.current = true;
+                // The Gemini bridge opens every session with a spoken greeting.
+                if (parsed.provider === 'gemini') {
+                  greetingPendingRef.current = true;
+                  clearGreetingTimer();
+                  greetingTimerRef.current = window.setTimeout(() => {
+                    greetingTimerRef.current = null;
+                    greetingPendingRef.current = false;
+                    if (!agentSpeakingRef.current) maybeResumeMic();
+                  }, GREETING_TIMEOUT);
+                } else {
+                  maybeResumeMic();
+                }
+              }
               return;
             }
 
@@ -771,6 +867,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           setWsConnected(false);
           setIsLoading(false);
           wsRef.current = null;
+          sessionReadyRef.current = false;
+          greetingPendingRef.current = false;
+          clearGreetingTimer();
 
           if (event.code === 1008 || event.code === 1003 || event.code === 4003 || event.code === 4005 || event.code === 4006) {
             if (reconnectRef.current) {
@@ -793,7 +892,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         reconnectRef.current = window.setTimeout(connectWebSocket, 2000);
       }
     },
-    [buildWebSocketUrl, handleServerMessage, handleBinaryPCMAudio, sessionId, email]
+    [buildWebSocketUrl, handleServerMessage, handleBinaryPCMAudio, maybeResumeMic, sessionId, email]
   );
 
   const sendChatMessage = useCallback(
@@ -912,16 +1011,30 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       if (silenceDetectionTimerRef.current) {
         clearTimeout(silenceDetectionTimerRef.current);
       }
+      clearMicResumeTimer();
+      clearGreetingTimer();
     };
   }, []);
 
   const startIOSRecording = useCallback(async () => {
+    // Never record over the agent's voice; maybeResumeMic opens the mic once it is done.
+    wantsMicRef.current = true;
+    if (!sessionReadyRef.current || greetingPendingRef.current || agentSpeakingRef.current) return;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') return;
+    // iOS recording is one-shot per tap; it is not reopened automatically after each reply.
+    wantsMicRef.current = false;
+
     try {
       setIsListening(true);
       audioChunksRef.current = [];
 
       // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS });
+      if (agentSpeakingRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        setIsListening(false);
+        return;
+      }
       mediaStreamRef.current = stream;
 
       // Create audio context and analyser for silence detection
@@ -974,14 +1087,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
       mediaRecorder.onstop = async () => {
         setIsListening(false);
-        setIsLoading(true); // Show loading while audio is being transcribed
+        // Stopped because the agent started talking: drop the recording instead of transcribing it.
+        const discarded = discardIOSRecordingRef.current;
+        discardIOSRecordingRef.current = false;
+        if (!discarded) {
+          setIsLoading(true); // Show loading while audio is being transcribed
+        }
 
         // Reset response flag so the upcoming display message is not blocked
         responseMessageShownRef.current = false;
         firstAudioChunkTimeRef.current = null;
-        
+
         // Send stream end signal
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        if (!discarded && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
             type: 'audio_stream_end',
             format: format,
@@ -1094,22 +1212,27 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   }, []);
 
   const startRecognition = useCallback(async () => {
-    if (isListening) return;
+    // Never listen over the agent's voice; maybeResumeMic opens the mic once it is done.
+    wantsMicRef.current = true;
+    if (!sessionReadyRef.current || greetingPendingRef.current || agentSpeakingRef.current) return;
+    if (recognitionActiveRef.current) return;
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
+    recognitionActiveRef.current = true;
     if (recognitionRef.current) recognitionRef.current.abort();
 
     // Set up audio analyser for waveform visualization
+    let analyserContext: AudioContext | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS });
       mediaStreamRef.current = stream;
-      
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
+
+      analyserContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = analyserContext.createMediaStreamSource(stream);
+      const analyser = analyserContext.createAnalyser();
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
@@ -1118,7 +1241,25 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       console.warn('[Audio] Could not set up analyser for waveform:', err);
     }
 
+    const releaseAnalyser = () => {
+      voiceAnalyserRef.current = null;
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      analyserContext?.close().catch(() => {});
+      analyserContext = null;
+    };
+
+    // The agent may have started talking while we were waiting for the mic.
+    if (agentSpeakingRef.current || manualStopRef.current) {
+      releaseAnalyser();
+      recognitionActiveRef.current = false;
+      return;
+    }
+
     const recognition = new SpeechRecognition();
+    recognition.discarded = false;
     recognitionRef.current = recognition;
 
     recognition.continuous = false;
@@ -1153,13 +1294,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     };
 
     recognition.onend = () => {
-      setIsListening(false);
-      voiceAnalyserRef.current = null;
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
       }
-      if (fullTranscriptRef.current.trim() && !stoppedForAudioRef.current) {
+      if (recognitionRef.current === recognition) {
+        recognitionRef.current = null;
+        recognitionActiveRef.current = false;
+        setIsListening(false);
+        releaseAnalyser();
+      }
+      if (recognition.discarded) {
+        // Aborted because the agent started talking: whatever was heard may be the agent itself.
+        setCurrentTranscript('');
+        fullTranscriptRef.current = '';
+        return;
+      }
+      if (fullTranscriptRef.current.trim()) {
         handleVoiceMessageInternal(fullTranscriptRef.current);
       }
     };
@@ -1168,12 +1319,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       recognition.start();
     } catch (err) {
       console.error('Speech engine start failed:', err);
+      recognitionRef.current = null;
+      recognitionActiveRef.current = false;
+      releaseAnalyser();
       setIsListening(false);
     }
-  }, [isListening, handleVoiceMessageInternal]);
+  }, [handleVoiceMessageInternal]);
+
+  startMicRef.current = () => {
+    if (isIOSDevice()) {
+      startIOSRecording();
+    } else {
+      startRecognition();
+    }
+  };
 
   const startVoiceSession = useCallback(async () => {
     manualStopRef.current = false;
+    wantsMicRef.current = true;
 
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       connectWebSocket();
@@ -1195,6 +1358,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const handleMicClick = () => {
     if (isListening) {
       manualStopRef.current = true;
+      wantsMicRef.current = false;
       if (isIOSDevice()) {
         stopIOSRecording();
       } else {
@@ -1208,6 +1372,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
       setIsListening(false);
       return;
+    }
+    if (agentSpeakingRef.current) {
+      // Deliberate barge-in: tapping the mic while the agent talks cuts it off and listens.
+      if (!turnDoneRef.current) ignoreAudioRef.current = true;
+      sendInterrupt();
+      greetingPendingRef.current = false;
+      clearGreetingTimer();
     }
     if (!hasAudioPermissionRef.current) {
       setShowPermissionModal(true);
